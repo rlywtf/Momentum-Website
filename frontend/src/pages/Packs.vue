@@ -86,40 +86,61 @@
 
           <q-card-actions :align="'stretch'">
             <q-btn
-              :href="pack.url_zip"
+              :href="`${pack.zipFile.url}?sha256=${pack.zipFile.sha256}`"
               class="main-btn"
-              style="flex: 1;"
+              style="flex: 1; padding: 5px;"
               flat
             >Download</q-btn>
-            <q-btn
-              v-if="flags.ableToExtract === false"
-              @click="updateFw()"
-              class="main-btn"
-              style="flex: 1;"
-              flat
-            >Update FW</q-btn>
-            <q-btn
-              v-else-if="!installing.includes(pack)"
-              :disable="!serialSupported || rpcToggling || (connected && flags.ableToExtract === null)"
-              @click="install(pack)"
-              class="main-btn"
-              style="flex: 1;"
-              flat
-            >{{ !serialSupported ? 'Unsupported' : rpcToggling ? 'Connecting' : !connected ? 'Connect' : flags.ableToExtract === null ? 'Loading' : 'Install' }}</q-btn>
-            <q-btn
-              v-else-if="installing.indexOf(pack) === 0"
-              class="main-btn"
-              :style="`flex: 1; background-image: linear-gradient(to right, #a883e9 ${progress * 100}%, transparent ${progress * 100}%);`"
-              disable
-              flat
-            >{{ installStatus }}</q-btn>
-            <q-btn
-              v-else
-              class="main-btn"
-              style="flex: 1;"
-              disable
-              flat
-            >Queued</q-btn>
+
+            <div style="flex: 1; margin-left: 6px; display: flex; flex-wrap: wrap">
+              <q-btn
+                v-if="flags.ableToExtract === false"
+                @click="updateFw()"
+                class="main-btn"
+                style="flex: 1; padding: 5px;"
+                flat
+              >Update FW</q-btn>
+              <q-btn
+                v-else-if="!queue.includes(pack)"
+                :disable="!serialSupported || rpcToggling || (connected && flags.ableToExtract === null)"
+                @click="enqueue(pack, 'install')"
+                :class="`main-btn ${installed[pack.id] && installed[pack.id].sha256 !== pack.tarFile.sha256 ? 'attention' : ''}`"
+                style="flex: 1; padding: 5px;"
+                flat
+              >{{
+                  !serialSupported ? 'Unsupported'
+                    : rpcToggling ? 'Connecting'
+                    : !connected ? 'Connect'
+                    : flags.ableToExtract === null ? 'Loading'
+                    : !installed[pack.id] ? 'Install'
+                    : installed[pack.id].sha256 === pack.tarFile.sha256 ? 'Reflash'
+                    : 'Update'
+              }}</q-btn>
+              <q-btn
+                v-else-if="queue.indexOf(pack) === 0"
+                class="main-btn"
+                :style="`flex: 1; padding: 5px; background-image: linear-gradient(to right, #a883e9 ${progress * 100}%, transparent ${progress * 100}%);`"
+                disable
+                flat
+              >{{ installStatus }}</q-btn>
+              <q-btn
+                v-else
+                class="main-btn"
+                style="flex: 1; padding: 5px;"
+                disable
+                flat
+              >Queued</q-btn>
+
+              <q-btn
+                v-if="installed[pack.id]"
+                @click="enqueue(pack, 'remove')"
+                class="main-btn negative"
+                style="flex: 0; padding: 5px; margin-left: 6px; overflow: visible;"
+                :disable="queue.includes(pack)"
+                flat
+                icon="delete_outline"
+              ></q-btn>
+            </div>
           </q-card-actions>
 
         </q-card>
@@ -136,6 +157,8 @@ import semver from 'semver'
 
 const ASSET_PACKS_DIR = '/ext/asset_packs'
 const ASSET_PACKS_TEMP_PATH = '/ext/.tmp/mntm'
+const ASSET_PACKS_MANIFESTS_DIR = `${ASSET_PACKS_DIR}/.manifests`
+const ASSET_PACKS_MANIFESTS_EXT = '.pack'
 
 export default defineComponent({
   name: 'PagePacks',
@@ -152,6 +175,7 @@ export default defineComponent({
   setup () {
     return {
       packs: ref(null),
+      installed: ref({}),
       slides: ref({}),
       flags: ref({
         restarting: false,
@@ -161,7 +185,8 @@ export default defineComponent({
       }),
       progress: ref(0),
       installStatus: ref(null),
-      installing: ref([]),
+      queue: ref([]),
+      queueActions: ref([]),
       fakeExtractProgress: ref(null)
     }
   },
@@ -179,17 +204,19 @@ export default defineComponent({
       window.top.location.href = '/update'
     },
 
-    async install (pack) {
+    async enqueue (pack, action) {
       if (!this.serialSupported) return
       if (!this.connected || this.info == null || !this.rpcActive) {
         if (!this.rpcToggling) this.$emit('selectPort')
         return
       }
-      this.installing.push(pack)
-      if (this.installing.length > 1) {
+      // I dont like this
+      this.queue.push(pack)
+      this.queueActions.push(action)
+      if (this.queue.length > 1) {
         return
       }
-      while (this.installing.length > 0) {
+      while (this.queue.length > 0) {
         try {
           const stepCount = 3
           let step = -1
@@ -200,13 +227,53 @@ export default defineComponent({
 
           this.installStatus = 'Loading'
           step++
-          pack = this.installing[0]
-          const url = pack.url_tar
-          const packTar = await fetch(url)
+          pack = this.queue[0]
+          action = this.queueActions[0]
+          const manifestPath = `${ASSET_PACKS_MANIFESTS_DIR}/${pack.id}${ASSET_PACKS_MANIFESTS_EXT}`
+
+          const removeOldPacks = async () => {
+            const installed = this.installed[pack.id]
+            if (!installed) return
+            for (const folder of installed.folders) {
+              const packFolder = `${ASSET_PACKS_DIR}/${folder}`
+              await this.flipper.commands.storage.remove(packFolder, true)
+                .catch(error => this.rpcErrorHandler(error, 'storage.remove'))
+                .finally(() => {
+                  this.$emit('log', {
+                    level: 'debug',
+                    message: `Packs: storage.remove: ${packFolder}`
+                  })
+                })
+            }
+            await this.flipper.commands.storage.remove(manifestPath, false)
+              .catch(error => this.rpcErrorHandler(error, 'storage.remove'))
+              .finally(() => {
+                this.$emit('log', {
+                  level: 'debug',
+                  message: `Packs: storage.remove: ${manifestPath}`
+                })
+              })
+          }
+          if (action === 'remove') {
+            this.installStatus = 'Deleting'
+            await removeOldPacks()
+            delete this.installed[pack.id]
+            continue
+          }
+
+          if (action !== 'install') {
+            continue
+          }
+          let removeOldPacksTask = null
+          const packFile = pack.tarFile
+          const packUrl = `${packFile.url}?sha256=${packFile.sha256}`
+          const packTar = await fetch(packUrl)
             .then(async response => {
               if (response.status >= 400) {
                 throw new Error('Pack returned ' + response.status)
               }
+              // Start removing previous packs in background, but only if request succeeded
+              removeOldPacksTask = removeOldPacks()
               // Read in chunks
               const totalLength = Number(response.headers.get('content-length'))
               const reader = response.body.getReader()
@@ -243,9 +310,12 @@ export default defineComponent({
             .finally(() => {
               this.$emit('log', {
                 level: 'debug',
-                message: 'Packs: Downloaded pack from ' + url
+                message: 'Packs: Downloaded pack from ' + packUrl
               })
             })
+          // Wait for removal to complete if download was hyperfast
+          this.installStatus = 'Cleanup'
+          await removeOldPacksTask
 
           const mkdirParents = async (path) => {
             if (path.endsWith('/')) {
@@ -271,7 +341,7 @@ export default defineComponent({
             }
           }
 
-          await mkdirParents(ASSET_PACKS_DIR)
+          await mkdirParents(ASSET_PACKS_MANIFESTS_DIR)
           await mkdirParents(ASSET_PACKS_TEMP_PATH)
           const tempFile = `${ASSET_PACKS_TEMP_PATH}/${pack.id}.tar.gz`
 
@@ -296,7 +366,7 @@ export default defineComponent({
             })
           unbind()
 
-          this.installStatus = 'Extracting'
+          this.installStatus = 'Extract'
           step++
           start = performance.now()
           // Lord forgive me for I have sinned
@@ -331,12 +401,92 @@ export default defineComponent({
                 message: 'Packs: storage.remove: ' + tempFile
               })
             })
+          const manifest = {
+            sha256: packFile.sha256,
+            folders: pack.stats.folders
+          }
+          const manifestData = new TextEncoder().encode(JSON.stringify(manifest))
+          await this.flipper.commands.storage.write(manifestPath, manifestData)
+            .catch(error => {
+              this.rpcErrorHandler(error, 'storage.write')
+              throw error
+            })
+            .finally(() => {
+              this.$emit('log', {
+                level: 'debug',
+                message: `Packs: storage.write: ${manifestPath}`
+              })
+            })
+          this.installed[pack.id] = manifest
         } finally {
-          this.installing.shift()
+          this.queue.shift()
+          this.queueActions.shift()
           this.installStatus = null
           this.progress = 0
         }
       }
+    },
+
+    async loadPackManifest (path) {
+      try {
+        const raw = await this.flipper.commands.storage.read(path)
+          .catch(error => {
+            this.rpcErrorHandler(error, 'storage.read')
+            throw error
+          })
+          .finally(() => {
+            this.$emit('log', {
+              level: 'debug',
+              message: `Packs: storage.read: ${path}`
+            })
+          })
+        const text = new TextDecoder().decode(raw)
+        const json = JSON.parse(text)
+        if (!json.sha256 || !Array.isArray(json.folders)) return null
+        return {
+          sha256: json.sha256,
+          folders: json.folders
+        }
+      } catch (e) {
+        console.log(e)
+        return null
+      }
+    },
+
+    async loadInstalledPacks () {
+      const installed = {}
+      try {
+        const manifests = await this.flipper.commands.storage.list(ASSET_PACKS_MANIFESTS_DIR)
+          .catch(error => {
+            if (error === 'ERROR_STORAGE_NOT_EXIST') {
+              return []
+            }
+            this.rpcErrorHandler(error, 'storage.list')
+            throw error
+          })
+          .finally(() => {
+            this.$emit('log', {
+              level: 'debug',
+              message: `Packs: storage.list: ${ASSET_PACKS_MANIFESTS_DIR}`
+            })
+          })
+        for (const manifest of manifests) {
+          if (manifest.type === 1 || !manifest.size) continue
+          if (!manifest.name.endsWith(ASSET_PACKS_MANIFESTS_EXT)) continue
+          const packId = manifest.name.slice(0, -ASSET_PACKS_MANIFESTS_EXT.length)
+          for (const pack of this.packs) {
+            if (pack.id === packId) {
+              const manifestData = await this.loadPackManifest(`${ASSET_PACKS_MANIFESTS_DIR}/${manifest.name}`)
+              if (manifestData) installed[packId] = manifestData
+              break
+            }
+          }
+        }
+      } catch (e) {
+        console.log(e)
+      }
+      console.log(installed)
+      this.installed = installed
     },
 
     async startRpc () {
@@ -413,6 +563,7 @@ export default defineComponent({
     async start () {
       if (!this.serialSupported) return
       this.flags.rpcActive = this.rpcActive
+      await this.loadInstalledPacks()
       this.flags.ableToExtract = !semver.lt((this.info.protobuf_version_major + '.' + this.info.protobuf_version_minor) + '.0', '0.23.0')
       if (!this.rpcActive) {
         setTimeout(() => {
@@ -454,6 +605,7 @@ export default defineComponent({
       this.flags.ableToExtract = null
       this.flags.rpcActive = false
       this.flags.rpcToggling = false
+      this.installed = {}
       this.$emit('setRpcStatus', false)
     })
   },

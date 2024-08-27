@@ -34,12 +34,12 @@ async function fetchPacks () {
   const packs = data.packs.map((pack) => {
     for (const file of pack.files) {
       if (file.type === 'pack_targz') {
-        pack.url_tar = file.url
+        pack.tarFile = file
       } else if (file.type === 'pack_zip') {
-        pack.url_zip = file.url
+        pack.zipFile = file
       }
     }
-    if (pack.url_tar && pack.url_zip) {
+    if (pack.tarFile && pack.zipFile) {
       return pack
     } else {
       return null
