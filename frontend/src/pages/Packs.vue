@@ -134,6 +134,9 @@ import { defineComponent, ref } from 'vue'
 import asyncSleep from 'simple-async-sleep'
 import semver from 'semver'
 
+const ASSET_PACKS_DIR = '/ext/asset_packs'
+const ASSET_PACKS_TEMP_PATH = '/ext/.tmp/mntm'
+
 export default defineComponent({
   name: 'PagePacks',
 
@@ -166,8 +169,8 @@ export default defineComponent({
   watch: {
     async info (newInfo, oldInfo) {
       if (newInfo !== null && newInfo.storage_databases_present && this.connected) {
-        this.flags.ableToExtract = !semver.lt((this.info.protobuf_version_major + '.' + this.info.protobuf_version_minor) + '.0', '0.23.0')
         await this.start()
+        this.flags.ableToExtract = !semver.lt((this.info.protobuf_version_major + '.' + this.info.protobuf_version_minor) + '.0', '0.23.0')
       }
     }
   },
@@ -269,11 +272,9 @@ export default defineComponent({
             }
           }
 
-          const extractPath = '/ext/asset_packs'
-          const tempPath = '/ext/.tmp/mntm'
-          const tempFile = `${tempPath}/${pack.id}.tar.gz`
-          await mkdirParents(extractPath)
-          await mkdirParents(tempPath)
+          await mkdirParents(ASSET_PACKS_DIR)
+          await mkdirParents(ASSET_PACKS_TEMP_PATH)
+          const tempFile = `${ASSET_PACKS_TEMP_PATH}/${pack.id}.tar.gz`
 
           this.installStatus = 'Copying'
           step++
@@ -304,7 +305,7 @@ export default defineComponent({
           this.fakeExtractProgress = setInterval(() => {
             setProgress((performance.now() - start) / expectedExtractTime)
           }, 250)
-          await this.flipper.commands.storage.tarExtract(tempFile, extractPath)
+          await this.flipper.commands.storage.tarExtract(tempFile, ASSET_PACKS_DIR)
             .catch(error => {
               this.rpcErrorHandler(error, 'storage.tarExtract')
               throw error
@@ -317,7 +318,7 @@ export default defineComponent({
               took = performance.now() - start
               this.$emit('log', {
                 level: 'debug',
-                message: `Packs: storage.tarExtract: ${tempFile} to ${extractPath} took ${Math.round(took)}ms`
+                message: `Packs: storage.tarExtract: ${tempFile} to ${ASSET_PACKS_DIR} took ${Math.round(took)}ms`
               })
             })
           setProgress(1)
