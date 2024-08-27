@@ -88,14 +88,15 @@
             <q-btn
               :href="`${pack.zipFile.url}?sha256=${pack.zipFile.sha256}`"
               class="main-btn"
-              style="flex: 1;"
+              style="flex: 1; padding: 5px;"
               flat
             >Download</q-btn>
+
             <q-btn
               v-if="flags.ableToExtract === false"
               @click="updateFw()"
               class="main-btn"
-              style="flex: 1;"
+              style="flex: 1; padding: 5px;"
               flat
             >Update FW</q-btn>
             <q-btn
@@ -103,7 +104,7 @@
               :disable="!serialSupported || rpcToggling || (connected && flags.ableToExtract === null)"
               @click="install(pack)"
               :class="`main-btn ${installed[pack.id] && installed[pack.id].sha256 !== pack.tarFile.sha256 ? 'attention' : ''}`"
-              style="flex: 1;"
+              style="flex: 1; padding: 5px;"
               flat
             >{{
                 !serialSupported ? 'Unsupported'
@@ -117,17 +118,26 @@
             <q-btn
               v-else-if="installing.indexOf(pack) === 0"
               class="main-btn"
-              :style="`flex: 1; background-image: linear-gradient(to right, #a883e9 ${progress * 100}%, transparent ${progress * 100}%);`"
+              :style="`flex: 1; padding: 5px; background-image: linear-gradient(to right, #a883e9 ${progress * 100}%, transparent ${progress * 100}%);`"
               disable
               flat
             >{{ installStatus }}</q-btn>
             <q-btn
               v-else
               class="main-btn"
-              style="flex: 1;"
+              style="flex: 1; padding: 5px;"
               disable
               flat
             >Queued</q-btn>
+
+            <q-btn
+                v-if="installed[pack.id]"
+                @click="uninstall(pack)"
+                class="main-btn negative"
+                style="flex: 0; padding: 5px;"
+                flat
+                icon="delete_outline"
+              ></q-btn>
           </q-card-actions>
 
         </q-card>
