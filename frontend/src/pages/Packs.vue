@@ -100,9 +100,9 @@
               flat
             >Update FW</q-btn>
             <q-btn
-              v-else-if="!installing.includes(pack)"
+              v-else-if="!queue.includes(pack)"
               :disable="!serialSupported || rpcToggling || (connected && flags.ableToExtract === null)"
-              @click="install(pack)"
+              @click="enqueue(pack, 'install')"
               :class="`main-btn ${installed[pack.id] && installed[pack.id].sha256 !== pack.tarFile.sha256 ? 'attention' : ''}`"
               style="flex: 1; padding: 5px;"
               flat
@@ -116,7 +116,7 @@
                   : 'Update'
             }}</q-btn>
             <q-btn
-              v-else-if="installing.indexOf(pack) === 0"
+              v-else-if="queue.indexOf(pack) === 0"
               class="main-btn"
               :style="`flex: 1; padding: 5px; background-image: linear-gradient(to right, #a883e9 ${progress * 100}%, transparent ${progress * 100}%);`"
               disable
@@ -132,9 +132,10 @@
 
             <q-btn
                 v-if="installed[pack.id]"
-                @click="uninstall(pack)"
+                @click="enqueue(pack, 'remove')"
                 class="main-btn negative"
                 style="flex: 0; padding: 5px;"
+                :disable="queue.includes(pack)"
                 flat
                 icon="delete_outline"
               ></q-btn>
@@ -182,7 +183,8 @@ export default defineComponent({
       }),
       progress: ref(0),
       installStatus: ref(null),
-      installing: ref([]),
+      queue: ref([]),
+      queueActions: ref([]),
       fakeExtractProgress: ref(null)
     }
   },
@@ -200,17 +202,19 @@ export default defineComponent({
       window.top.location.href = '/update'
     },
 
-    async install (pack) {
+    async enqueue (pack, action) {
       if (!this.serialSupported) return
       if (!this.connected || this.info == null || !this.rpcActive) {
         if (!this.rpcToggling) this.$emit('selectPort')
         return
       }
-      this.installing.push(pack)
-      if (this.installing.length > 1) {
+      // I dont like this
+      this.queue.push(pack)
+      this.queueActions.push(action)
+      if (this.queue.length > 1) {
         return
       }
-      while (this.installing.length > 0) {
+      while (this.queue.length > 0) {
         try {
           const stepCount = 3
           let step = -1
@@ -221,8 +225,10 @@ export default defineComponent({
 
           this.installStatus = 'Loading'
           step++
-          pack = this.installing[0]
-          let removeOldPacksTask = null
+          pack = this.queue[0]
+          action = this.queueActions[0]
+          const manifestPath = `${ASSET_PACKS_MANIFESTS_DIR}/${pack.id}${ASSET_PACKS_MANIFESTS_EXT}`
+
           const removeOldPacks = async () => {
             const installed = this.installed[pack.id]
             if (!installed) return
@@ -237,7 +243,25 @@ export default defineComponent({
                   })
                 })
             }
+            await this.flipper.commands.storage.remove(manifestPath, false)
+              .catch(error => this.rpcErrorHandler(error, 'storage.remove'))
+              .finally(() => {
+                this.$emit('log', {
+                  level: 'debug',
+                  message: `Packs: storage.remove: ${manifestPath}`
+                })
+              })
           }
+          if (action === 'remove') {
+            await removeOldPacks()
+            delete this.installed[pack.id]
+            continue
+          }
+
+          if (action !== 'install') {
+            continue
+          }
+          let removeOldPacksTask = null
           const packFile = pack.tarFile
           const packUrl = `${packFile.url}?sha256=${packFile.sha256}`
           const packTar = await fetch(packUrl)
@@ -379,7 +403,6 @@ export default defineComponent({
             folders: pack.stats.folders
           }
           const manifestData = new TextEncoder().encode(JSON.stringify(manifest))
-          const manifestPath = `${ASSET_PACKS_MANIFESTS_DIR}/${pack.id}${ASSET_PACKS_MANIFESTS_EXT}`
           await this.flipper.commands.storage.write(manifestPath, manifestData)
             .catch(error => {
               this.rpcErrorHandler(error, 'storage.write')
@@ -393,7 +416,8 @@ export default defineComponent({
             })
           this.installed[pack.id] = manifest
         } finally {
-          this.installing.shift()
+          this.queue.shift()
+          this.queueActions.shift()
           this.installStatus = null
           this.progress = 0
         }
