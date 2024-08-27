@@ -102,10 +102,18 @@
               v-else-if="!installing.includes(pack)"
               :disable="!serialSupported || rpcToggling || (connected && flags.ableToExtract === null)"
               @click="install(pack)"
-              class="main-btn"
+              :class="`main-btn ${installed[pack.id] && installed[pack.id].sha256 !== pack.tarFile.sha256 ? 'attention' : ''}`"
               style="flex: 1;"
               flat
-            >{{ !serialSupported ? 'Unsupported' : rpcToggling ? 'Connecting' : !connected ? 'Connect' : flags.ableToExtract === null ? 'Loading' : 'Install' }}</q-btn>
+            >{{
+                !serialSupported ? 'Unsupported'
+                  : rpcToggling ? 'Connecting'
+                  : !connected ? 'Connect'
+                  : flags.ableToExtract === null ? 'Loading'
+                  : !installed[pack.id] ? 'Install'
+                  : installed[pack.id].sha256 === pack.tarFile.sha256 ? 'Reinstall'
+                  : 'Update'
+            }}</q-btn>
             <q-btn
               v-else-if="installing.indexOf(pack) === 0"
               class="main-btn"
@@ -517,8 +525,8 @@ export default defineComponent({
     async start () {
       if (!this.serialSupported) return
       this.flags.rpcActive = this.rpcActive
+      await this.loadInstalledPacks()
       this.flags.ableToExtract = !semver.lt((this.info.protobuf_version_major + '.' + this.info.protobuf_version_minor) + '.0', '0.23.0')
-      this.loadInstalledPacks()
       if (!this.rpcActive) {
         setTimeout(() => {
           if (!this.rpcActive) {
@@ -559,6 +567,7 @@ export default defineComponent({
       this.flags.ableToExtract = null
       this.flags.rpcActive = false
       this.flags.rpcToggling = false
+      this.installed = {}
       this.$emit('setRpcStatus', false)
     })
   },
