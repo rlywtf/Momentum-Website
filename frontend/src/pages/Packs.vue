@@ -255,6 +255,7 @@ export default defineComponent({
               })
           }
           if (action === 'remove') {
+            this.installStatus = 'Deleting'
             await removeOldPacks()
             delete this.installed[pack.id]
             continue
