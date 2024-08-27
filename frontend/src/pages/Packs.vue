@@ -86,7 +86,7 @@
 
           <q-card-actions :align="'stretch'">
             <q-btn
-              :href="pack.url_zip"
+              :href="pack.zipFile.url"
               class="main-btn"
               style="flex: 1;"
               flat
@@ -204,8 +204,8 @@ export default defineComponent({
           this.installStatus = 'Loading'
           step++
           pack = this.installing[0]
-          const url = pack.url_tar
-          const packTar = await fetch(url)
+          const packFile = pack.tarFile
+          const packTar = await fetch(packFile.url)
             .then(async response => {
               if (response.status >= 400) {
                 throw new Error('Pack returned ' + response.status)
@@ -246,7 +246,7 @@ export default defineComponent({
             .finally(() => {
               this.$emit('log', {
                 level: 'debug',
-                message: 'Packs: Downloaded pack from ' + url
+                message: 'Packs: Downloaded pack from ' + packFile.url
               })
             })
 
