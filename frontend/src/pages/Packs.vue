@@ -360,9 +360,30 @@ export default defineComponent({
       }
     },
 
-    async loadPackManifest () {
-      // TODO: implement
-      return {}
+    async loadPackManifest (path) {
+      try {
+        const raw = await this.flipper.commands.storage.read(path)
+          .catch(error => {
+            this.rpcErrorHandler(error, 'storage.read')
+            throw error
+          })
+          .finally(() => {
+            this.$emit('log', {
+              level: 'debug',
+              message: `Packs: storage.read: ${path}`
+            })
+          })
+        const text = new TextDecoder().decode(raw)
+        const json = JSON.parse(text)
+        if (!json.sha256 || !Array.isArray(json.folders)) return {}
+        return {
+          sha256: json.sha256,
+          folders: json.folders
+        }
+      } catch (e) {
+        console.log(e)
+        return {}
+      }
     },
 
     async loadInstalledPacks () {
