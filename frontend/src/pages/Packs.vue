@@ -334,6 +334,24 @@ export default defineComponent({
                 message: 'Packs: storage.remove: ' + tempFile
               })
             })
+          const manifest = {
+            sha256: packFile.sha256,
+            folders: pack.stats.folders
+          }
+          const manifestData = new TextEncoder().encode(JSON.stringify(manifest))
+          const manifestPath = `${ASSET_PACKS_MANIFESTS_DIR}/${pack.id}${ASSET_PACKS_MANIFESTS_EXT}`
+          await this.flipper.commands.storage.write(manifestPath, manifestData)
+            .catch(error => {
+              this.rpcErrorHandler(error, 'storage.write')
+              throw error
+            })
+            .finally(() => {
+              this.$emit('log', {
+                level: 'debug',
+                message: `Packs: storage.write: ${manifestPath}`
+              })
+            })
+          this.installed[pack.id] = manifest
         } finally {
           this.installing.shift()
           this.installStatus = null
