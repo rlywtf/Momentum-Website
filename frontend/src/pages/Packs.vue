@@ -170,7 +170,6 @@ export default defineComponent({
     async info (newInfo, oldInfo) {
       if (newInfo !== null && newInfo.storage_databases_present && this.connected) {
         await this.start()
-        this.flags.ableToExtract = !semver.lt((this.info.protobuf_version_major + '.' + this.info.protobuf_version_minor) + '.0', '0.23.0')
       }
     }
   },
@@ -414,6 +413,7 @@ export default defineComponent({
     async start () {
       if (!this.serialSupported) return
       this.flags.rpcActive = this.rpcActive
+      this.flags.ableToExtract = !semver.lt((this.info.protobuf_version_major + '.' + this.info.protobuf_version_minor) + '.0', '0.23.0')
       if (!this.rpcActive) {
         setTimeout(() => {
           if (!this.rpcActive) {
@@ -422,16 +422,6 @@ export default defineComponent({
         }, 1000)
         await this.startRpc()
       }
-      navigator.serial.addEventListener('disconnect', e => {
-        if (this.fakeExtractProgress !== null) {
-          clearInterval(this.fakeExtractProgress)
-          this.fakeExtractProgress = null
-        }
-        this.flags.ableToExtract = null
-        this.flags.rpcActive = false
-        this.flags.rpcToggling = false
-        this.$emit('setRpcStatus', false)
-      })
     }
   },
 
@@ -456,11 +446,19 @@ export default defineComponent({
     if (this.connected && this.info !== null && this.info.storage_databases_present) {
       await this.start()
     }
+    navigator.serial.addEventListener('disconnect', e => {
+      if (this.fakeExtractProgress !== null) {
+        clearInterval(this.fakeExtractProgress)
+        this.fakeExtractProgress = null
+      }
+      this.flags.ableToExtract = null
+      this.flags.rpcActive = false
+      this.flags.rpcToggling = false
+      this.$emit('setRpcStatus', false)
+    })
   },
 
   async beforeUnmount () {
-    this.unbindRestart()
-    await asyncSleep(3000)
   }
 })
 </script>
