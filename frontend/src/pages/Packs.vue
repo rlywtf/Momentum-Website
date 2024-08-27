@@ -205,7 +205,8 @@ export default defineComponent({
           step++
           pack = this.installing[0]
           const packFile = pack.tarFile
-          const packTar = await fetch(`${packFile.url}?sha256=${packFile.sha256}`)
+          const packUrl = `${packFile.url}?sha256=${packFile.sha256}`
+          const packTar = await fetch(packUrl)
             .then(async response => {
               if (response.status >= 400) {
                 throw new Error('Pack returned ' + response.status)
@@ -246,7 +247,7 @@ export default defineComponent({
             .finally(() => {
               this.$emit('log', {
                 level: 'debug',
-                message: 'Packs: Downloaded pack from ' + packFile.url
+                message: 'Packs: Downloaded pack from ' + packUrl
               })
             })
 
