@@ -136,6 +136,8 @@ import semver from 'semver'
 
 const ASSET_PACKS_DIR = '/ext/asset_packs'
 const ASSET_PACKS_TEMP_PATH = '/ext/.tmp/mntm'
+const ASSET_PACKS_MANIFESTS_DIR = `${ASSET_PACKS_DIR}/.manifests`
+const ASSET_PACKS_MANIFESTS_EXT = '.pack'
 
 export default defineComponent({
   name: 'PagePacks',
@@ -152,6 +154,7 @@ export default defineComponent({
   setup () {
     return {
       packs: ref(null),
+      installed: ref({}),
       slides: ref({}),
       flags: ref({
         restarting: false,
@@ -271,7 +274,7 @@ export default defineComponent({
             }
           }
 
-          await mkdirParents(ASSET_PACKS_DIR)
+          await mkdirParents(ASSET_PACKS_MANIFESTS_DIR)
           await mkdirParents(ASSET_PACKS_TEMP_PATH)
           const tempFile = `${ASSET_PACKS_TEMP_PATH}/${pack.id}.tar.gz`
 
@@ -337,6 +340,46 @@ export default defineComponent({
           this.progress = 0
         }
       }
+    },
+
+    async loadPackManifest () {
+      // TODO: implement
+      return {}
+    },
+
+    async loadInstalledPacks () {
+      const installed = {}
+      try {
+        const manifests = await this.flipper.commands.storage.list(ASSET_PACKS_MANIFESTS_DIR)
+          .catch(error => {
+            if (error === 'ERROR_STORAGE_NOT_EXIST') {
+              return []
+            }
+            this.rpcErrorHandler(error, 'storage.list')
+            throw error
+          })
+          .finally(() => {
+            this.$emit('log', {
+              level: 'debug',
+              message: `Packs: storage.list: ${ASSET_PACKS_MANIFESTS_DIR}`
+            })
+          })
+        for (const manifest of manifests) {
+          if (manifest.type === 1 || !manifest.size) continue
+          if (!manifest.name.endsWith(ASSET_PACKS_MANIFESTS_EXT)) continue
+          const packId = manifest.name.slice(0, -ASSET_PACKS_MANIFESTS_EXT.length)
+          for (const pack of this.packs) {
+            if (pack.id === packId) {
+              const manifestData = await this.loadPackManifest(`${ASSET_PACKS_MANIFESTS_DIR}/${manifest.name}`)
+              if (manifestData) installed[packId] = manifestData
+              break
+            }
+          }
+        }
+      } catch (e) {
+        console.log(e)
+      }
+      this.installed = installed
     },
 
     async startRpc () {
@@ -414,6 +457,7 @@ export default defineComponent({
       if (!this.serialSupported) return
       this.flags.rpcActive = this.rpcActive
       this.flags.ableToExtract = !semver.lt((this.info.protobuf_version_major + '.' + this.info.protobuf_version_minor) + '.0', '0.23.0')
+      this.loadInstalledPacks()
       if (!this.rpcActive) {
         setTimeout(() => {
           if (!this.rpcActive) {
