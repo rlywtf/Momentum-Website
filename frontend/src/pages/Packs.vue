@@ -204,6 +204,22 @@ export default defineComponent({
           this.installStatus = 'Loading'
           step++
           pack = this.installing[0]
+          let removeOldPacksTask = null
+          const removeOldPacks = async () => {
+            const installed = this.installed[pack.id]
+            if (!installed) return
+            for (const folder of installed.folders) {
+              const packFolder = `${ASSET_PACKS_DIR}/${folder}`
+              await this.flipper.commands.storage.remove(packFolder, true)
+                .catch(error => this.rpcErrorHandler(error, 'storage.remove'))
+                .finally(() => {
+                  this.$emit('log', {
+                    level: 'debug',
+                    message: `Packs: storage.remove: ${packFolder}`
+                  })
+                })
+            }
+          }
           const packFile = pack.tarFile
           const packUrl = `${packFile.url}?sha256=${packFile.sha256}`
           const packTar = await fetch(packUrl)
@@ -211,6 +227,8 @@ export default defineComponent({
               if (response.status >= 400) {
                 throw new Error('Pack returned ' + response.status)
               }
+              // Start removing previous packs in background, but only if request succeeded
+              removeOldPacksTask = removeOldPacks()
               // Read in chunks
               const totalLength = Number(response.headers.get('content-length'))
               const reader = response.body.getReader()
@@ -250,6 +268,9 @@ export default defineComponent({
                 message: 'Packs: Downloaded pack from ' + packUrl
               })
             })
+          // Wait for removal to complete if download was hyperfast
+          this.installStatus = 'Cleanup'
+          await removeOldPacksTask
 
           const mkdirParents = async (path) => {
             if (path.endsWith('/')) {
