@@ -92,53 +92,55 @@
               flat
             >Download</q-btn>
 
-            <q-btn
-              v-if="flags.ableToExtract === false"
-              @click="updateFw()"
-              class="main-btn"
-              style="flex: 1; padding: 5px;"
-              flat
-            >Update FW</q-btn>
-            <q-btn
-              v-else-if="!queue.includes(pack)"
-              :disable="!serialSupported || rpcToggling || (connected && flags.ableToExtract === null)"
-              @click="enqueue(pack, 'install')"
-              :class="`main-btn ${installed[pack.id] && installed[pack.id].sha256 !== pack.tarFile.sha256 ? 'attention' : ''}`"
-              style="flex: 1; padding: 5px;"
-              flat
-            >{{
-                !serialSupported ? 'Unsupported'
-                  : rpcToggling ? 'Connecting'
-                  : !connected ? 'Connect'
-                  : flags.ableToExtract === null ? 'Loading'
-                  : !installed[pack.id] ? 'Install'
-                  : installed[pack.id].sha256 === pack.tarFile.sha256 ? 'Reinstall'
-                  : 'Update'
-            }}</q-btn>
-            <q-btn
-              v-else-if="queue.indexOf(pack) === 0"
-              class="main-btn"
-              :style="`flex: 1; padding: 5px; background-image: linear-gradient(to right, #a883e9 ${progress * 100}%, transparent ${progress * 100}%);`"
-              disable
-              flat
-            >{{ installStatus }}</q-btn>
-            <q-btn
-              v-else
-              class="main-btn"
-              style="flex: 1; padding: 5px;"
-              disable
-              flat
-            >Queued</q-btn>
+            <div style="flex: 1; margin-left: 6px; display: flex; flex-wrap: wrap">
+              <q-btn
+                v-if="flags.ableToExtract === false"
+                @click="updateFw()"
+                class="main-btn"
+                style="flex: 1; padding: 5px;"
+                flat
+              >Update FW</q-btn>
+              <q-btn
+                v-else-if="!queue.includes(pack)"
+                :disable="!serialSupported || rpcToggling || (connected && flags.ableToExtract === null)"
+                @click="enqueue(pack, 'install')"
+                :class="`main-btn ${installed[pack.id] && installed[pack.id].sha256 !== pack.tarFile.sha256 ? 'attention' : ''}`"
+                style="flex: 1; padding: 5px;"
+                flat
+              >{{
+                  !serialSupported ? 'Unsupported'
+                    : rpcToggling ? 'Connecting'
+                    : !connected ? 'Connect'
+                    : flags.ableToExtract === null ? 'Loading'
+                    : !installed[pack.id] ? 'Install'
+                    : installed[pack.id].sha256 === pack.tarFile.sha256 ? 'Reflash'
+                    : 'Update'
+              }}</q-btn>
+              <q-btn
+                v-else-if="queue.indexOf(pack) === 0"
+                class="main-btn"
+                :style="`flex: 1; padding: 5px; background-image: linear-gradient(to right, #a883e9 ${progress * 100}%, transparent ${progress * 100}%);`"
+                disable
+                flat
+              >{{ installStatus }}</q-btn>
+              <q-btn
+                v-else
+                class="main-btn"
+                style="flex: 1; padding: 5px;"
+                disable
+                flat
+              >Queued</q-btn>
 
-            <q-btn
+              <q-btn
                 v-if="installed[pack.id]"
                 @click="enqueue(pack, 'remove')"
                 class="main-btn negative"
-                style="flex: 0; padding: 5px;"
+                style="flex: 0; padding: 5px; margin-left: 6px; overflow: visible;"
                 :disable="queue.includes(pack)"
                 flat
                 icon="delete_outline"
               ></q-btn>
+            </div>
           </q-card-actions>
 
         </q-card>
@@ -363,7 +365,7 @@ export default defineComponent({
             })
           unbind()
 
-          this.installStatus = 'Extracting'
+          this.installStatus = 'Extract'
           step++
           start = performance.now()
           // Lord forgive me for I have sinned
