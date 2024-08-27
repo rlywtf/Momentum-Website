@@ -442,14 +442,14 @@ export default defineComponent({
           })
         const text = new TextDecoder().decode(raw)
         const json = JSON.parse(text)
-        if (!json.sha256 || !Array.isArray(json.folders)) return {}
+        if (!json.sha256 || !Array.isArray(json.folders)) return null
         return {
           sha256: json.sha256,
           folders: json.folders
         }
       } catch (e) {
         console.log(e)
-        return {}
+        return null
       }
     },
 
@@ -485,6 +485,7 @@ export default defineComponent({
       } catch (e) {
         console.log(e)
       }
+      console.log(installed)
       this.installed = installed
     },
 
