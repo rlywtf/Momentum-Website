@@ -11,6 +11,17 @@
       </template>
       <h5 v-else-if="packs.length < 1">Nothing to see here 🤔</h5>
       <div v-else>
+
+        <q-input bottom-slots v-model="search" placeholder="Search" dense dark borderless style="width: 200px">
+          <template v-slot:prepend>
+            <q-icon name="search" />
+          </template>
+
+          <template v-slot:append>
+            <q-icon v-if="search !== ''" name="close" @click="search = ''" class="cursor-pointer" />
+          </template>
+        </q-input>
+
         <q-select
           v-model="sorting"
           @update:model-value="sortPacks()"
@@ -25,6 +36,7 @@
           dense
           dark
         />
+
         <q-list class="packs-grid">
           <q-card
             v-for="pack in packsModel"
@@ -221,7 +233,12 @@ export default defineComponent({
           sortFn = (a, b) => a.stats.added > b.stats.added ? 1 : -1
           break
       }
-      return packs.sort(sortFn)
+      return packs.sort(sortFn).filter((pack) => {
+        for (const text of [pack.name, pack.author, pack.description]) {
+          if (text.toLowerCase().includes(this.search.toLowerCase())) return true
+        }
+        return false
+      })
     }
   },
 
@@ -230,6 +247,7 @@ export default defineComponent({
       packs: ref(null),
       installed: ref({}),
       slides: ref({}),
+      search: ref(''),
       sorting: ref('New Updates'),
       sortOptions: ref([
         'Alphabetic',
