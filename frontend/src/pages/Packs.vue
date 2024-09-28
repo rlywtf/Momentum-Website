@@ -37,51 +37,57 @@
           </q-carousel>
 
           <div class="q-mt-xs q-ml-md q-mr-sm flex flex-col items-center justify-between" style="flex-wrap: nowrap;">
-            <div class="text-left text-bold">
-              <div class="text-h5">{{ pack.name }}</div>
-              <div class="text-h7">by {{ pack.author }}</div>
+            <div class="text-left text-bold col-grow">
+              <div class="text-h5 flex flex-col justify-between">
+                {{ pack.name }}
+                <q-btn
+                  v-if="pack.source_url"
+                  :href="pack.source_url"
+                  target="_blank"
+                  icon="open_in_new"
+                  class="flat-btn"
+                  style="padding: 0; margin-right: 5px;"
+                  flat
+                />
+              </div>
+
+              <div class="text-h7 q-mr-sm flex flex-col justify-between">
+                by {{ pack.author }}
+                <span>
+                  <q-icon v-if="pack.stats.packs > 1" size="1.3em" style="margin-left: 5px" name="category">
+                    <q-tooltip style="font-size: 1.2em; padding: 0.1em 0.3em;">
+                      Contains {{ pack.stats.packs }} Asset Packs
+                    </q-tooltip>
+                  </q-icon>
+                  <q-icon v-if="pack.stats.anims > 0" size="1.3em" style="margin-left: 5px" name="ondemand_video">
+                    <q-tooltip style="font-size: 1.2em; padding: 0.1em 0.3em;">
+                      {{ pack.stats.anims }} Animation{{ pack.stats.anims > 1 ? "s" : "" }}
+                    </q-tooltip>
+                  </q-icon>
+                  <q-icon v-if="pack.stats.passport.length > 0" size="1.3em" style="margin-left: 5px" name="portrait">
+                    <q-tooltip style="font-size: 1.2em; padding: 0.1em 0.3em;">
+                      {{ !pack.stats.passport.includes("Background") ? "" : "Passport Background" + (pack.stats.passport.length > 1 ? ` and ${pack.stats.passport.slice(1).join(", ")} Mood${pack.stats.passport.length > 2 ? "s" : ""}` : "") }}
+                      {{ pack.stats.passport.includes("Background") ? "" : `${pack.stats.passport.join(", ")} Passport Mood${pack.stats.passport.length > 1 ? "s" : ""}` }}
+                    </q-tooltip>
+                  </q-icon>
+                  <q-icon v-if="pack.stats.icons > 0" size="1.3em" style="margin-left: 5px" name="wallpaper">
+                    <q-tooltip style="font-size: 1.2em; padding: 0.1em 0.3em;">
+                      {{ pack.stats.icons }} Icon{{ pack.stats.icons > 1 ? "s" : "" }}
+                    </q-tooltip>
+                  </q-icon>
+                  <q-icon v-if="pack.stats.fonts.length > 0" size="1.3em" style="margin-left: 5px" name="text_fields">
+                    <q-tooltip style="font-size: 1.2em; padding: 0.1em 0.3em;">
+                      {{ pack.stats.fonts.join(", ") }} Font{{ pack.stats.fonts.length > 1 ? "s" : "" }}
+                    </q-tooltip>
+                  </q-icon>
+                </span>
+              </div>
             </div>
-            <q-btn
-              v-if="pack.source_url"
-              :href="pack.source_url"
-              target="_blank"
-              icon="open_in_new"
-              class="main-btn"
-              style="border: none; padding: 0; margin: 0; width: 50px; height: 50px;"
-              flat
-            />
           </div>
-          <div class="q-mt-sm q-mx-md">
-            <q-icon v-if="pack.stats.packs > 1" size="1.5em" left name="category">
-              <q-tooltip style="font-size: 1.2em; padding: 0.1em 0.3em;">
-                Contains {{ pack.stats.packs }} Asset Packs
-              </q-tooltip>
-            </q-icon>
-            <q-icon v-if="pack.stats.anims > 0" size="1.5em" left name="ondemand_video">
-              <q-tooltip style="font-size: 1.2em; padding: 0.1em 0.3em;">
-                {{ pack.stats.anims }} Animation{{ pack.stats.anims > 1 ? "s" : "" }}
-              </q-tooltip>
-            </q-icon>
-            <q-icon v-if="pack.stats.passport.length > 0" size="1.5em" left name="portrait">
-              <q-tooltip style="font-size: 1.2em; padding: 0.1em 0.3em;">
-                {{ !pack.stats.passport.includes("Background") ? "" : "Passport Background" + (pack.stats.passport.length > 1 ? ` and ${pack.stats.passport.slice(1).join(", ")} Mood${pack.stats.passport.length > 2 ? "s" : ""}` : "") }}
-                {{ pack.stats.passport.includes("Background") ? "" : `${pack.stats.passport.join(", ")} Passport Mood${pack.stats.passport.length > 1 ? "s" : ""}` }}
-              </q-tooltip>
-            </q-icon>
-            <q-icon v-if="pack.stats.icons > 0" size="1.5em" left name="wallpaper">
-              <q-tooltip style="font-size: 1.2em; padding: 0.1em 0.3em;">
-                {{ pack.stats.icons }} Icon{{ pack.stats.icons > 1 ? "s" : "" }}
-              </q-tooltip>
-            </q-icon>
-            <q-icon v-if="pack.stats.fonts.length > 0" size="1.5em" left name="text_fields">
-              <q-tooltip style="font-size: 1.2em; padding: 0.1em 0.3em;">
-                {{ pack.stats.fonts.join(", ") }} Font{{ pack.stats.fonts.length > 1 ? "s" : "" }}
-              </q-tooltip>
-            </q-icon>
-          </div>
+
           <div
             v-if="pack.description"
-            class="text-h7 q-mt-sm q-mx-md"
+            class="text-h7 q-mt-xs q-mx-md"
           >{{ pack.description }}</div>
 
           <q-card-actions :align="'stretch'">
