@@ -87,8 +87,13 @@
 
           <div
             v-if="pack.description"
-            class="text-h7 q-mt-xs q-mx-md"
+            class="q-mt-xs q-mx-md"
           >{{ pack.description }}</div>
+
+          <div class="text-grey text-caption q-mx-md flex flex-col justify-between">
+            <span>Last Updated: {{ pack.stats.updated.toISOString().split("T")[0] }}</span>
+            <!-- <span>Added: {{ pack.stats.added.toISOString().split("T")[0] }}</span> -->
+          </div>
 
           <q-card-actions :align="'stretch'">
             <q-btn
