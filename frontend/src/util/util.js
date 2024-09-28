@@ -32,6 +32,8 @@ async function fetchPacks () {
   const data = await response.json()
 
   const packs = data.packs.map((pack) => {
+    pack.stats.updated = new Date(pack.stats.updated * 1000)
+    pack.stats.added = new Date(pack.stats.added * 1000)
     for (const file of pack.files) {
       if (file.type === 'pack_targz') {
         pack.tarFile = file

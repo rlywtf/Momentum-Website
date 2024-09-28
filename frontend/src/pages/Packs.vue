@@ -10,141 +10,181 @@
         <p>Loading Asset Packs...</p>
       </template>
       <h5 v-else-if="packs.length < 1">Nothing to see here 🤔</h5>
-      <q-list v-else class="packs-grid">
-        <q-card
-          v-for="pack in packs"
-          :key="pack.id"
-          v-bind="pack"
-          class="flex justify-between"
-          style="flex-direction: column;"
-          dark
-        >
-          <q-carousel
-            animated
-            v-model="slides[pack.id]"
-            :arrows="pack.preview_urls.length > 1"
-            :navigation="pack.preview_urls.length > 1"
-            transition-prev="slide-right"
-            transition-next="slide-left"
-            infinite
+      <div v-else class="flex column nowrap">
+
+        <div class="flex justify-center q-gutter-sm">
+          <q-input bottom-slots v-model="search" placeholder="Search" dense dark borderless style="width: 200px">
+            <template v-slot:prepend>
+              <q-icon name="search" />
+            </template>
+
+            <template v-slot:append>
+              <q-icon v-if="search !== ''" name="close" @click="search = ''" class="cursor-pointer" />
+            </template>
+          </q-input>
+
+          <q-select
+            v-model="sorting"
+            :options="sortOptions"
+            style="width: 142px; border-radius: 14px; border-width: 2px;"
+            popup-content-style="width: 142px; height: auto; max-height: 320px; border-radius: 14px; border: 2px solid white;"
+            popup-content-class="bg-black text-gray-3"
+            options-selected-class="bg-black text-white"
+            behavior="menu"
+            options-dense
+            borderless
+            dense
+            dark
+          />
+        </div>
+
+        <q-list class="packs-grid grow">
+          <q-card
+            v-for="pack in packsModel"
+            :key="pack.id"
+            v-bind="pack"
+            class="flex justify-between"
+            style="flex-direction: column;"
+            dark
           >
-            <q-carousel-slide
-              v-for="(preview_url, i) in pack.preview_urls"
-              :key="i"
-              :name="i + 1"
-              :img-src="preview_url"
-            />
-          </q-carousel>
+            <q-carousel
+              animated
+              v-model="slides[pack.id]"
+              :arrows="pack.preview_urls.length > 1"
+              :navigation="pack.preview_urls.length > 1"
+              transition-prev="slide-right"
+              transition-next="slide-left"
+              infinite
+            >
+              <q-carousel-slide
+                v-for="(preview_url, i) in pack.preview_urls"
+                :key="i"
+                :name="i + 1"
+                :img-src="preview_url"
+              />
+            </q-carousel>
 
-          <div class="q-mt-xs q-ml-md q-mr-sm flex flex-col items-center justify-between" style="flex-wrap: nowrap;">
-            <div class="text-left text-bold">
-              <div class="text-h5">{{ pack.name }}</div>
-              <div class="text-h7">by {{ pack.author }}</div>
+            <div class="q-mt-xs q-ml-md q-mr-sm flex items-center justify-between" style="flex-wrap: nowrap;">
+              <div class="text-left text-bold col-grow">
+                <div class="text-h5 flex justify-between">
+                  {{ pack.name }}
+                  <q-btn
+                    v-if="pack.source_url"
+                    :href="pack.source_url"
+                    target="_blank"
+                    icon="open_in_new"
+                    class="flat-btn"
+                    style="padding: 0; margin-right: 5px;"
+                    flat
+                  />
+                </div>
+
+                <div class="text-h7 q-mr-sm flex justify-between">
+                  by {{ pack.author }}
+                  <span>
+                    <q-icon v-if="pack.stats.packs > 1" size="1.3em" style="margin-left: 5px" name="category">
+                      <q-tooltip style="font-size: 1.2em; padding: 0.1em 0.3em;">
+                        Contains {{ pack.stats.packs }} Asset Packs
+                      </q-tooltip>
+                    </q-icon>
+                    <q-icon v-if="pack.stats.anims > 0" size="1.3em" style="margin-left: 5px" name="ondemand_video">
+                      <q-tooltip style="font-size: 1.2em; padding: 0.1em 0.3em;">
+                        {{ pack.stats.anims }} Animation{{ pack.stats.anims > 1 ? "s" : "" }}
+                      </q-tooltip>
+                    </q-icon>
+                    <q-icon v-if="pack.stats.passport.length > 0" size="1.3em" style="margin-left: 5px" name="portrait">
+                      <q-tooltip style="font-size: 1.2em; padding: 0.1em 0.3em;">
+                        {{ !pack.stats.passport.includes("Background") ? "" : "Passport Background" + (pack.stats.passport.length > 1 ? ` and ${pack.stats.passport.slice(1).join(", ")} Mood${pack.stats.passport.length > 2 ? "s" : ""}` : "") }}
+                        {{ pack.stats.passport.includes("Background") ? "" : `${pack.stats.passport.join(", ")} Passport Mood${pack.stats.passport.length > 1 ? "s" : ""}` }}
+                      </q-tooltip>
+                    </q-icon>
+                    <q-icon v-if="pack.stats.icons > 0" size="1.3em" style="margin-left: 5px" name="wallpaper">
+                      <q-tooltip style="font-size: 1.2em; padding: 0.1em 0.3em;">
+                        {{ pack.stats.icons }} Icon{{ pack.stats.icons > 1 ? "s" : "" }}
+                      </q-tooltip>
+                    </q-icon>
+                    <q-icon v-if="pack.stats.fonts.length > 0" size="1.3em" style="margin-left: 5px" name="text_fields">
+                      <q-tooltip style="font-size: 1.2em; padding: 0.1em 0.3em;">
+                        {{ pack.stats.fonts.join(", ") }} Font{{ pack.stats.fonts.length > 1 ? "s" : "" }}
+                      </q-tooltip>
+                    </q-icon>
+                  </span>
+                </div>
+              </div>
             </div>
-            <q-btn
-              v-if="pack.source_url"
-              :href="pack.source_url"
-              target="_blank"
-              icon="open_in_new"
-              class="main-btn"
-              style="border: none; padding: 0; margin: 0; width: 50px; height: 50px;"
-              flat
-            />
-          </div>
-          <div class="q-mt-sm q-mx-md">
-            <q-icon v-if="pack.stats.packs > 1" size="1.5em" left name="category">
-              <q-tooltip style="font-size: 1.2em; padding: 0.1em 0.3em;">
-                Contains {{ pack.stats.packs }} Asset Packs
-              </q-tooltip>
-            </q-icon>
-            <q-icon v-if="pack.stats.anims > 0" size="1.5em" left name="ondemand_video">
-              <q-tooltip style="font-size: 1.2em; padding: 0.1em 0.3em;">
-                {{ pack.stats.anims }} Animation{{ pack.stats.anims > 1 ? "s" : "" }}
-              </q-tooltip>
-            </q-icon>
-            <q-icon v-if="pack.stats.passport.length > 0" size="1.5em" left name="portrait">
-              <q-tooltip style="font-size: 1.2em; padding: 0.1em 0.3em;">
-                {{ !pack.stats.passport.includes("Background") ? "" : "Passport Background" + (pack.stats.passport.length > 1 ? ` and ${pack.stats.passport.slice(1).join(", ")} Mood${pack.stats.passport.length > 2 ? "s" : ""}` : "") }}
-                {{ pack.stats.passport.includes("Background") ? "" : `${pack.stats.passport.join(", ")} Passport Mood${pack.stats.passport.length > 1 ? "s" : ""}` }}
-              </q-tooltip>
-            </q-icon>
-            <q-icon v-if="pack.stats.icons > 0" size="1.5em" left name="wallpaper">
-              <q-tooltip style="font-size: 1.2em; padding: 0.1em 0.3em;">
-                {{ pack.stats.icons }} Icon{{ pack.stats.icons > 1 ? "s" : "" }}
-              </q-tooltip>
-            </q-icon>
-            <q-icon v-if="pack.stats.fonts.length > 0" size="1.5em" left name="text_fields">
-              <q-tooltip style="font-size: 1.2em; padding: 0.1em 0.3em;">
-                {{ pack.stats.fonts.join(", ") }} Font{{ pack.stats.fonts.length > 1 ? "s" : "" }}
-              </q-tooltip>
-            </q-icon>
-          </div>
-          <div
-            v-if="pack.description"
-            class="text-h7 q-mt-sm q-mx-md"
-          >{{ pack.description }}</div>
 
-          <q-card-actions :align="'stretch'">
-            <q-btn
-              :href="`${pack.zipFile.url}?sha256=${pack.zipFile.sha256}`"
-              class="main-btn"
-              style="flex: 1; padding: 5px;"
-              flat
-            >Download</q-btn>
+            <div
+              v-if="pack.description"
+              class="q-mt-xs q-mx-md"
+            >{{ pack.description }}</div>
 
-            <div style="flex: 1; margin-left: 6px; display: flex; flex-wrap: wrap">
-              <q-btn
-                v-if="flags.ableToExtract === false"
-                @click="updateFw()"
-                class="main-btn"
-                style="flex: 1; padding: 5px;"
-                flat
-              >Update FW</q-btn>
-              <q-btn
-                v-else-if="!queue.includes(pack)"
-                :disable="!serialSupported || rpcToggling || (connected && flags.ableToExtract === null)"
-                @click="enqueue(pack, 'install')"
-                :class="`main-btn ${installed[pack.id] && installed[pack.id].sha256 !== pack.tarFile.sha256 ? 'attention' : ''}`"
-                style="flex: 1; padding: 5px;"
-                flat
-              >{{
-                  !serialSupported ? 'Unsupported'
-                    : rpcToggling ? 'Connecting'
-                    : !connected ? 'Connect'
-                    : flags.ableToExtract === null ? 'Loading'
-                    : !installed[pack.id] ? 'Install'
-                    : installed[pack.id].sha256 === pack.tarFile.sha256 ? 'Reflash'
-                    : 'Update'
-              }}</q-btn>
-              <q-btn
-                v-else-if="queue.indexOf(pack) === 0"
-                class="main-btn"
-                :style="`flex: 1; padding: 5px; background-image: linear-gradient(to right, #a883e9 ${progress * 100}%, transparent ${progress * 100}%);`"
-                disable
-                flat
-              >{{ installStatus }}</q-btn>
-              <q-btn
-                v-else
-                class="main-btn"
-                style="flex: 1; padding: 5px;"
-                disable
-                flat
-              >Queued</q-btn>
-
-              <q-btn
-                v-if="installed[pack.id]"
-                @click="enqueue(pack, 'remove')"
-                class="main-btn negative"
-                style="flex: 0; padding: 5px; margin-left: 6px; overflow: visible;"
-                :disable="queue.includes(pack)"
-                flat
-                icon="delete_outline"
-              ></q-btn>
+            <div class="text-grey text-caption q-mx-md flex justify-between">
+              <span>Last Updated: {{ pack.stats.updated.toISOString().split("T")[0] }}</span>
+              <!-- <span>Added: {{ pack.stats.added.toISOString().split("T")[0] }}</span> -->
             </div>
-          </q-card-actions>
 
-        </q-card>
-      </q-list>
+            <q-card-actions :align="'stretch'">
+              <q-btn
+                :href="`${pack.zipFile.url}?sha256=${pack.zipFile.sha256}`"
+                class="main-btn"
+                style="flex: 1; padding: 5px;"
+                flat
+              >Download</q-btn>
+
+              <div style="flex: 1; margin-left: 6px; display: flex; flex-wrap: wrap">
+                <q-btn
+                  v-if="flags.ableToExtract === false"
+                  @click="updateFw()"
+                  class="main-btn"
+                  style="flex: 1; padding: 5px;"
+                  flat
+                >Update FW</q-btn>
+                <q-btn
+                  v-else-if="!queue.includes(pack)"
+                  :disable="!serialSupported || rpcToggling || (connected && flags.ableToExtract === null)"
+                  @click="enqueue(pack, 'install')"
+                  :class="`main-btn ${installed[pack.id] && installed[pack.id].sha256 !== pack.tarFile.sha256 ? 'attention' : ''}`"
+                  style="flex: 1; padding: 5px;"
+                  flat
+                >{{
+                    !serialSupported ? 'Unsupported'
+                      : rpcToggling ? 'Connecting'
+                      : !connected ? 'Connect'
+                      : flags.ableToExtract === null ? 'Loading'
+                      : !installed[pack.id] ? 'Install'
+                      : installed[pack.id].sha256 === pack.tarFile.sha256 ? 'Reflash'
+                      : 'Update'
+                }}</q-btn>
+                <q-btn
+                  v-else-if="queue.indexOf(pack) === 0"
+                  class="main-btn"
+                  :style="`flex: 1; padding: 5px; background-image: linear-gradient(to right, #a883e9 ${progress * 100}%, transparent ${progress * 100}%);`"
+                  disable
+                  flat
+                >{{ installStatus }}</q-btn>
+                <q-btn
+                  v-else
+                  class="main-btn"
+                  style="flex: 1; padding: 5px;"
+                  disable
+                  flat
+                >Queued</q-btn>
+
+                <q-btn
+                  v-if="installed[pack.id]"
+                  @click="enqueue(pack, 'remove')"
+                  class="main-btn negative"
+                  style="flex: 0; padding: 5px; margin-left: 6px; overflow: visible;"
+                  :disable="queue.includes(pack)"
+                  flat
+                  icon="delete_outline"
+                ></q-btn>
+              </div>
+            </q-card-actions>
+
+          </q-card>
+        </q-list>
+      </div>
     </div>
   </q-page>
 </template>
@@ -172,11 +212,51 @@ export default defineComponent({
     info: Object
   },
 
+  computed: {
+    packsModel () {
+      if (!this.packs) return []
+      const packs = this.packs
+      let sortFn = null
+      switch (this.sorting) {
+        case 'Alphabetic':
+          sortFn = (a, b) => a.name.toLowerCase() > b.name.toLowerCase() ? 1 : -1
+          break
+        case 'New Updates':
+          sortFn = (a, b) => a.stats.updated < b.stats.updated ? 1 : -1
+          break
+        case 'Old Updates':
+          sortFn = (a, b) => a.stats.updated > b.stats.updated ? 1 : -1
+          break
+        case 'New Packs':
+          sortFn = (a, b) => a.stats.added < b.stats.added ? 1 : -1
+          break
+        case 'Old Packs':
+          sortFn = (a, b) => a.stats.added > b.stats.added ? 1 : -1
+          break
+      }
+      return packs.sort(sortFn).filter((pack) => {
+        for (const text of [pack.name, pack.author, pack.description]) {
+          if (text.toLowerCase().includes(this.search.toLowerCase())) return true
+        }
+        return false
+      })
+    }
+  },
+
   setup () {
     return {
       packs: ref(null),
       installed: ref({}),
       slides: ref({}),
+      search: ref(''),
+      sorting: ref('New Updates'),
+      sortOptions: ref([
+        'Alphabetic',
+        'New Updates',
+        'New Packs',
+        'Old Updates',
+        'Old Packs'
+      ]),
       flags: ref({
         restarting: false,
         rpcActive: false,

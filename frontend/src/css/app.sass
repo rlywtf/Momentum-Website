@@ -109,24 +109,44 @@ body
       color: white
       background-color: $negative
 
+.q-btn.flat-btn
+  color: white
+  transition-duration: 500ms
+  min-height: unset
+  &:hover
+    color: $primary
+  .q-focus-helper
+    display: none
+
 .q-select
   color: white
   border: 2px solid white
   border-radius: 24px
   transition-duration: 500ms
-  &:hover, &:active
+  &:hover, &:active, &:focus-within
     border-color: $primary
   >*
     >*
       padding: 0px 7px 0px 14px
       >:last-of-type
         padding-left: 0px
-  #fw-select
+  .q-field__native
     >*
-      width: fit-content
       padding: 0.2rem 0.4rem
-      border-radius: 5px
-      background-color: $primary !important
+    &#fw-select
+      >*
+        width: fit-content
+        border-radius: 5px
+        background-color: $primary !important
+
+.q-input
+  color: white
+  border: 2px solid white
+  border-radius: 14px
+  transition-duration: 500ms
+  padding: 0 8px 0 8px
+  &:hover, &:active, &:focus-within
+    border-color: $primary
 
 #changelog
   font-size: 16px
