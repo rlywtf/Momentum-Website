@@ -10,33 +10,35 @@
         <p>Loading Asset Packs...</p>
       </template>
       <h5 v-else-if="packs.length < 1">Nothing to see here 🤔</h5>
-      <div v-else>
+      <div v-else class="flex column nowrap">
 
-        <q-input bottom-slots v-model="search" placeholder="Search" dense dark borderless style="width: 200px">
-          <template v-slot:prepend>
-            <q-icon name="search" />
-          </template>
+        <div class="flex justify-center q-gutter-sm">
+          <q-input bottom-slots v-model="search" placeholder="Search" dense dark borderless style="width: 200px">
+            <template v-slot:prepend>
+              <q-icon name="search" />
+            </template>
 
-          <template v-slot:append>
-            <q-icon v-if="search !== ''" name="close" @click="search = ''" class="cursor-pointer" />
-          </template>
-        </q-input>
+            <template v-slot:append>
+              <q-icon v-if="search !== ''" name="close" @click="search = ''" class="cursor-pointer" />
+            </template>
+          </q-input>
 
-        <q-select
-          v-model="sorting"
-          :options="sortOptions"
-          style="width: 142px; border-radius: 14px; border-width: 2px;"
-          popup-content-style="width: 142px; height: auto; max-height: 320px; border-radius: 14px; border: 2px solid white;"
-          popup-content-class="bg-black text-gray-3"
-          options-selected-class="bg-black text-white"
-          behavior="menu"
-          options-dense
-          borderless
-          dense
-          dark
-        />
+          <q-select
+            v-model="sorting"
+            :options="sortOptions"
+            style="width: 142px; border-radius: 14px; border-width: 2px;"
+            popup-content-style="width: 142px; height: auto; max-height: 320px; border-radius: 14px; border: 2px solid white;"
+            popup-content-class="bg-black text-gray-3"
+            options-selected-class="bg-black text-white"
+            behavior="menu"
+            options-dense
+            borderless
+            dense
+            dark
+          />
+        </div>
 
-        <q-list class="packs-grid">
+        <q-list class="packs-grid grow">
           <q-card
             v-for="pack in packsModel"
             :key="pack.id"
