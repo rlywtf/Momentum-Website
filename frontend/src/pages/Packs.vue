@@ -24,7 +24,6 @@
 
         <q-select
           v-model="sorting"
-          @update:model-value="sortPacks()"
           :options="sortOptions"
           style="width: 142px; border-radius: 14px; border-width: 2px;"
           popup-content-style="width: 142px; height: auto; max-height: 320px; border-radius: 14px; border: 2px solid white;"
@@ -63,9 +62,9 @@
               />
             </q-carousel>
 
-            <div class="q-mt-xs q-ml-md q-mr-sm flex flex-col items-center justify-between" style="flex-wrap: nowrap;">
+            <div class="q-mt-xs q-ml-md q-mr-sm flex items-center justify-between" style="flex-wrap: nowrap;">
               <div class="text-left text-bold col-grow">
-                <div class="text-h5 flex flex-col justify-between">
+                <div class="text-h5 flex justify-between">
                   {{ pack.name }}
                   <q-btn
                     v-if="pack.source_url"
@@ -78,7 +77,7 @@
                   />
                 </div>
 
-                <div class="text-h7 q-mr-sm flex flex-col justify-between">
+                <div class="text-h7 q-mr-sm flex justify-between">
                   by {{ pack.author }}
                   <span>
                     <q-icon v-if="pack.stats.packs > 1" size="1.3em" style="margin-left: 5px" name="category">
@@ -117,7 +116,7 @@
               class="q-mt-xs q-mx-md"
             >{{ pack.description }}</div>
 
-            <div class="text-grey text-caption q-mx-md flex flex-col justify-between">
+            <div class="text-grey text-caption q-mx-md flex justify-between">
               <span>Last Updated: {{ pack.stats.updated.toISOString().split("T")[0] }}</span>
               <!-- <span>Added: {{ pack.stats.added.toISOString().split("T")[0] }}</span> -->
             </div>
