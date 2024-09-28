@@ -27,7 +27,7 @@
         />
         <q-list class="packs-grid">
           <q-card
-            v-for="pack in packs"
+            v-for="pack in packsModel"
             :key="pack.id"
             v-bind="pack"
             class="flex justify-between"
@@ -199,6 +199,32 @@ export default defineComponent({
     info: Object
   },
 
+  computed: {
+    packsModel () {
+      if (!this.packs) return []
+      const packs = this.packs
+      let sortFn = null
+      switch (this.sorting) {
+        case 'Alphabetic':
+          sortFn = (a, b) => a.name.toLowerCase() > b.name.toLowerCase() ? 1 : -1
+          break
+        case 'New Updates':
+          sortFn = (a, b) => a.stats.updated < b.stats.updated ? 1 : -1
+          break
+        case 'Old Updates':
+          sortFn = (a, b) => a.stats.updated > b.stats.updated ? 1 : -1
+          break
+        case 'New Packs':
+          sortFn = (a, b) => a.stats.added < b.stats.added ? 1 : -1
+          break
+        case 'Old Packs':
+          sortFn = (a, b) => a.stats.added > b.stats.added ? 1 : -1
+          break
+      }
+      return packs.sort(sortFn)
+    }
+  },
+
   setup () {
     return {
       packs: ref(null),
@@ -237,29 +263,6 @@ export default defineComponent({
   methods: {
     async updateFw () {
       window.top.location.href = '/update'
-    },
-
-    async sortPacks () {
-      if (!this.packs) return
-      let sortFn = null
-      switch (this.sorting) {
-        case 'Alphabetic':
-          sortFn = (a, b) => a.name.toLowerCase() > b.name.toLowerCase() ? 1 : -1
-          break
-        case 'New Updates':
-          sortFn = (a, b) => a.stats.updated < b.stats.updated ? 1 : -1
-          break
-        case 'Old Updates':
-          sortFn = (a, b) => a.stats.updated > b.stats.updated ? 1 : -1
-          break
-        case 'New Packs':
-          sortFn = (a, b) => a.stats.added < b.stats.added ? 1 : -1
-          break
-        case 'Old Packs':
-          sortFn = (a, b) => a.stats.added > b.stats.added ? 1 : -1
-          break
-      }
-      this.packs.sort(sortFn)
     },
 
     async enqueue (pack, action) {
@@ -652,7 +655,6 @@ export default defineComponent({
       this.slides[pack.id] = 1
     }
     this.packs = packs
-    await this.sortPacks()
     if (this.connected && this.info !== null && this.info.storage_databases_present) {
       await this.start()
     }
